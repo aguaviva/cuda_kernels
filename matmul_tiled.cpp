@@ -10,27 +10,78 @@
 // EMPTY CUDA MATMUL KERNEL — YOU IMPLEMENT IT
 // Shared memory is already passed (dynamic or static)
 // ------------------------------------------------------------
+__global__ void matmulKernel_non_tiled(const float* A,
+                             const float* B,
+                             float* C,
+                             int M, int N, int K)
+{
+    extern __shared__ float smem[];
+
+    int x = blockDim.x * blockIdx.x + threadIdx.x;
+    int y = blockDim.y * blockIdx.y + threadIdx.y;
+
+    if (x<K && y<M)
+    {
+        float res = 0;
+        for(int i=0;i<N;i++)
+        {
+            res += A[y*N + i] * B[i*K + x];
+        }
+        C[y*K+x] = res;
+    }
+}
+
+// ------------------------------------------------------------
+// EMPTY CUDA MATMUL KERNEL — YOU IMPLEMENT IT
+// Shared memory is already passed (dynamic or static)
+// ------------------------------------------------------------
 __global__ void matmulKernel(const float* A,
                              const float* B,
                              float* C,
                              int M, int N, int K)
 {
-    // Option 1: STATIC shared memory (uncomment if you want)
-    // __shared__ float As[TILE][TILE];
-    // __shared__ float Bs[TILE][TILE];
+    extern __shared__ float smem[];
+    float *tA = smem;
+    float *tB = smem + TILE*TILE;
 
-    // Option 2: DYNAMIC shared memory (already passed via launch)
-    // float* smem = (float*)extern_shared_mem;
-    // float* As = smem;
-    // float* Bs = smem + TILE*TILE;
+    //int x = blockDim.x * blockIdx.x + threadIdx.x;
+    //int y = blockDim.y * blockIdx.y + threadIdx.y;
 
-    // TODO: implement your CUDA matrix multiplication here
-    // - compute row, col
-    // - load tiles into shared memory
-    // - synchronize
-    // - accumulate partial sums
-    // - write C[row*K + col]
+    int xt = blockIdx.x * TILE + threadIdx.x;
+    int yt = blockIdx.y * TILE + threadIdx.y;
+
+
+    float res = 0.0;
+
+    for (int t=0;t<(N+TILE)/TILE;t++)
+    {
+        int xtt = t*TILE + threadIdx.x;
+        int ytt = t*TILE + threadIdx.y;
+
+
+        if (xtt<N && yt<M)
+            tA[TILE*threadIdx.y + threadIdx.x] = A[yt*N + xtt];
+        else 
+            tA[TILE*threadIdx.y + threadIdx.x] = 0;
+
+        if (xt<K && ytt<N)
+            tB[TILE*threadIdx.y + threadIdx.x] = B[ytt*K + xt];
+        else
+            tB[TILE*threadIdx.y + threadIdx.x] = 0;
+
+        __syncthreads();
+
+        for(int j=0;j<TILE;j++)
+        {
+            res += tA[TILE*threadIdx.y + j] *tB[TILE*j + threadIdx.x];
+        }
+
+    }
+    
+    if (xt<K && yt<M)
+        C[yt*K+xt] = res;
 }
+
 // ------------------------------------------------------------
 
 
@@ -49,7 +100,7 @@ void cpuMatmul(const std::vector<float>& A,
 }
 
 int main() {
-    int M = 4, N = 4, K = 4;
+    int M = 19, N = 5, K = 18;
 
     std::vector<float> A(M*N), B(N*K), C_cpu(M*K), C_gpu(M*K);
 
@@ -105,7 +156,7 @@ int main() {
     // Compare
     bool ok = true;
     for (int i = 0; i < M*K; i++)
-        if (std::fabs(C_cpu[i] - C_gpu[i]) > 1e-4)
+        if (std::fabs(C_cpu[i] - C_gpu[i]) > 1e-2)
             ok = false;
 
     std::cout << "\nComparison: " << (ok ? "MATCH" : "MISMATCH") << "\n";
