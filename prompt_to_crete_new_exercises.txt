@@ -1,0 +1,44 @@
+Create a set of small, self‑contained GPU programming exercises designed for beginners learning CUDA or HIP.
+
+Each exercise must be delivered as a single `.cpp` file that:
+
+1. Compiles with **both** `nvcc` and `hipcc` (no CUDA‑only or HIP‑only APIs).
+2. Contains:
+   - a CPU reference implementation
+   - host code that allocates memory, launches the kernel, and checks correctness
+   - a GPU kernel **with an empty body** so the student must write the implementation
+3. Includes clear comments explaining:
+   - what the kernel is supposed to do
+   - how threads should be mapped to data
+   - what memory accesses are expected
+   - any edge cases the student must handle
+4. Avoids external libraries and keeps the code minimal and readable.
+5. Uses only basic GPU concepts:
+   - thread/block indexing
+   - shared memory (optional for advanced exercises)
+   - `__syncthreads()` when needed
+6. Produces exercises similar in complexity to:
+   - basic 1D convolution
+   - basic 2D convolution
+   - matrix addition
+   - naive matrix multiplication
+   - tiled matrix multiplication
+   - shared‑memory sum reduction
+
+Examples of good exercise topics:
+- vector scaling
+- elementwise activation functions (ReLU, sigmoid)
+- prefix sum (scan)
+- histogram
+- 2D stencil
+- tiled transpose
+- block‑level reduction
+- simple image filters
+
+For each exercise, output:
+- A short description of the task
+- The full `.cpp` file
+- An empty GPU kernel with a comment like:  
+  `// TODO: implement the GPU kernel here`
+
+The final code must compile and run, but the GPU output should be incorrect until the student fills in the kernel.
